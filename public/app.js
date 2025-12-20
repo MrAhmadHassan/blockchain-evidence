@@ -14,18 +14,30 @@ const roleDashboards = {
     7: 'dashboard-public-viewer.html', 8: 'dashboard-public-viewer.html'
 };
 
+// Debug function
+function debugInfo() {
+    console.log('Debug Info:');
+    console.log('userAccount:', userAccount);
+    console.log('localStorage key:', 'evidUser_' + userAccount);
+    console.log('saved user:', localStorage.getItem('evidUser_' + userAccount));
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
 });
 
 async function initializeApp() {
-    document.getElementById('connectWallet').addEventListener('click', connectWallet);
-    document.getElementById('registrationForm').addEventListener('submit', handleRegistration);
-    document.getElementById('goToDashboard').addEventListener('click', goToDashboard);
+    try {
+        document.getElementById('connectWallet').addEventListener('click', connectWallet);
+        document.getElementById('registrationForm').addEventListener('submit', handleRegistration);
+        document.getElementById('goToDashboard').addEventListener('click', goToDashboard);
 
-    const accounts = await window.ethereum?.request({ method: 'eth_accounts' }) || [];
-    if (accounts.length > 0) {
-        await connectWallet();
+        const accounts = await window.ethereum?.request({ method: 'eth_accounts' }) || [];
+        if (accounts.length > 0) {
+            await connectWallet();
+        }
+    } catch (error) {
+        console.error('App initialization error:', error);
     }
 }
 
@@ -44,7 +56,19 @@ async function connectWallet() {
             return;
         }
         
+        if (!window.ethereum) {
+            showAlert('MetaMask not detected. Please install MetaMask.', 'error');
+            showLoading(false);
+            return;
+        }
+        
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts.length === 0) {
+            showAlert('No accounts found. Please unlock MetaMask.', 'error');
+            showLoading(false);
+            return;
+        }
+        
         userAccount = accounts[0];
         web3 = new Web3(window.ethereum);
 
@@ -57,12 +81,18 @@ async function connectWallet() {
         showLoading(false);
     } catch (error) {
         showLoading(false);
+        console.error('Wallet connection error:', error);
         showAlert('Failed to connect wallet: ' + error.message, 'error');
     }
 }
 
 async function checkRegistrationStatus() {
     try {
+        if (!userAccount) {
+            showAlert('Please connect your wallet first.', 'error');
+            return;
+        }
+        
         const savedUser = localStorage.getItem('evidUser_' + userAccount);
         
         if (savedUser) {
@@ -80,6 +110,8 @@ async function checkRegistrationStatus() {
         document.getElementById('walletSection').classList.add('hidden');
         document.getElementById('registrationSection').classList.remove('hidden');
     } catch (error) {
+        console.error('Registration check error:', error);
+        showAlert('Error checking registration: ' + error.message, 'error');
         document.getElementById('walletSection').classList.add('hidden');
         document.getElementById('registrationSection').classList.remove('hidden');
     }
@@ -91,8 +123,20 @@ async function handleRegistration(event) {
     try {
         showLoading(true);
         
+        if (!userAccount) {
+            showAlert('Please connect your wallet first.', 'error');
+            showLoading(false);
+            return;
+        }
+        
         const fullName = document.getElementById('fullName').value;
         const role = parseInt(document.getElementById('userRole').value);
+        
+        if (!fullName || !role) {
+            showAlert('Please fill in all required fields and select a role.', 'error');
+            showLoading(false);
+            return;
+        }
         
         const userData = {
             fullName: fullName,
@@ -111,20 +155,35 @@ async function handleRegistration(event) {
         showAlert('Registration successful! Redirecting to dashboard...', 'success');
         
         setTimeout(() => {
-            window.location.href = roleDashboards[role];
+            const dashboardUrl = roleDashboards[role] || 'dashboard-public-viewer.html';
+            window.location.href = dashboardUrl;
         }, 2000);
         
     } catch (error) {
         showLoading(false);
+        console.error('Registration error:', error);
         showAlert('Registration failed: ' + error.message, 'error');
     }
 }
 
 async function goToDashboard() {
-    const savedUser = localStorage.getItem('evidUser_' + userAccount);
-    if (savedUser) {
-        const userInfo = JSON.parse(savedUser);
-        window.location.href = roleDashboards[userInfo.role];
+    try {
+        const savedUser = localStorage.getItem('evidUser_' + userAccount);
+        if (savedUser) {
+            const userInfo = JSON.parse(savedUser);
+            const dashboardUrl = roleDashboards[userInfo.role];
+            if (dashboardUrl) {
+                window.location.href = dashboardUrl;
+            } else {
+                showAlert('Dashboard not available for your role yet. Using default dashboard.', 'info');
+                window.location.href = 'dashboard-public-viewer.html';
+            }
+        } else {
+            showAlert('User data not found. Please register again.', 'error');
+        }
+    } catch (error) {
+        console.error('Dashboard navigation error:', error);
+        showAlert('Error navigating to dashboard: ' + error.message, 'error');
     }
 }
 
