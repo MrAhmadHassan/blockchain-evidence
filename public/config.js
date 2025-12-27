@@ -1,9 +1,14 @@
-var config = {
-    CONTRACT_ADDRESS: '0x1234567890123456789012345678901234567890', // Demo mode - replace with deployed contract address
-    PINATA_API_KEY: 'YOUR_PINATA_API_KEY', // Replace with your Pinata API key
-    PINATA_SECRET_KEY: 'YOUR_PINATA_SECRET_KEY', // Replace with your Pinata secret key
-    IPFS_GATEWAY: 'https://gateway.pinata.cloud/ipfs/',
-    NETWORK_ID: 11155111,
+// Essential Configuration
+const config = {
+    // Supabase Database (Free Tier)
+    SUPABASE_URL: 'https://vkqswulxmuuganmjqumb.supabase.co',
+    SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrcXN3dWx4bXV1Z2FubWpxdW1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3ODc3OTQsImV4cCI6MjA4MjM2Mzc5NH0.LsZKX2aThok0APCNXr9yQ8FnuJnIw6v8RsTIxVLFB4U',
+    
+    // File Upload Limits
+    MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+    ALLOWED_TYPES: ['image/*', 'video/*', 'audio/*', 'application/pdf', 'text/*'],
+    
+    // Network
     NETWORK_NAME: 'Sepolia Testnet',
-    DEMO_MODE: true // Set to false for production
+    DEMO_MODE: false
 };

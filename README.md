@@ -1,39 +1,58 @@
 # 🔐 EVID-DGC - Blockchain Evidence Management System
 
-Modern blockchain-based evidence management system with 8 user roles and IPFS storage.
+**Minimal, production-ready blockchain evidence management system.**
 
 ## ✨ Features
 
 - 🔒 **Blockchain Security** - Immutable evidence storage
-- 🌐 **IPFS Integration** - Decentralized file storage
+- 💾 **Database Storage** - Supabase PostgreSQL backend
 - 👥 **8 User Roles** - Complete access control
 - 📱 **Modern UI** - Professional red & white theme
-- 💾 **Local Storage** - Persistent user sessions
-- 🚀 **SEO Optimized** - Full search engine optimization
-- ⚡ **Performance Optimized** - Fast loading and responsive
+- 🚀 **Production Ready** - Fully functional system
 
 ## 🚀 Quick Start
 
-1. **Install dependencies**
-```bash
-npm install
-npm install -g http-server
-```
+1. **Setup Database**
+   ```sql
+   -- Run database-schema.sql in Supabase SQL Editor
+   ```
 
-2. **Start the application**
-```bash
-cd public
-http-server -p 8080
-```
+2. **Start Application**
+   ```bash
+   cd public
+   python -m http.server 8080
+   # or
+   npx serve .
+   ```
 
-3. **Open browser**
+3. **Access System**
+   ```
+   http://localhost:8080
+   ```
+
+## 📁 Project Structure
+
 ```
-http://localhost:8080
+public/
+├── index.html              # Main registration page
+├── dashboard.html          # Evidence management dashboard
+├── health-check.html       # System health verification
+├── styles.css             # Professional styling
+├── app.js                 # Main application logic
+├── config.js              # System configuration
+├── storage.js             # Database & evidence management
+├── dashboard-manager.js   # Dashboard functionality
+├── robots.txt             # SEO configuration
+├── sitemap.xml            # Site map
+└── _headers               # Security headers
+
+database-schema.sql         # Database setup
+render.yaml                # Deployment configuration
 ```
 
 ## 👥 User Roles
 
-1. 👁️ **Public Viewer** - View public cases/evidence
+1. 👁️ **Public Viewer** - View public evidence
 2. 🕵️ **Investigator** - Create and manage cases
 3. 🔬 **Forensic Analyst** - Analyze evidence
 4. ⚖️ **Legal Professional** - Legal review
@@ -42,114 +61,39 @@ http://localhost:8080
 7. 🔍 **Auditor** - System auditing
 8. 👑 **Administrator** - Full system access
 
-## 🛠️ Tech Stack
-
-- **Frontend**: HTML5, CSS3, JavaScript
-- **Blockchain**: Ethereum/Polygon
-- **Storage**: IPFS (Pinata)
-- **Wallet**: MetaMask integration
-- **Deployment**: Vercel with HTTP/2
-- **SEO**: Complete optimization
-
-## 📁 Project Structure
-
-```
-public/
-├── index.html              # Main registration page (SEO optimized)
-├── dashboard-*.html        # Role-specific dashboards
-├── styles.css             # Professional red & white theme
-├── app.js                 # Optimized application logic
-├── config.js              # Configuration
-├── dashboard-*.js         # Dashboard functionality
-├── robots.txt             # Search engine crawling rules
-├── sitemap.xml            # XML sitemap for SEO
-├── llms.txt               # AI/LLM optimization file
-├── _headers               # Security and performance headers
-└── vercel.json            # Deployment configuration
-```
-
-## 🎨 Design Features
-
-- **Professional red & white theme** with modern gradients
-- **3D card effects** with perspective transforms
-- **Clean color scheme** (red, white, gray accents)
-- **Glass morphism** design elements
-- **Responsive layout** for all devices
-- **Optimized performance** with reduced JavaScript
-
-## 🔧 SEO & Performance Optimizations
-
-### ✅ Completed SEO Fixes
-- ✅ Meta description tag added
-- ✅ Title tag optimized (60 characters)
-- ✅ Canonical tag implemented
-- ✅ Open Graph meta tags for social sharing
-- ✅ Twitter Card meta tags
-- ✅ Schema.org JSON-LD structured data
-- ✅ XML sitemap created
-- ✅ robots.txt file implemented
-- ✅ llms.txt for AI optimization
-- ✅ Security headers configured
-- ✅ Performance headers optimized
-- ✅ JavaScript code optimized
-- ✅ Content expanded (300+ words)
-- ✅ HTTP/2 configuration
-- ✅ Cache optimization
-
-### 📊 SEO Metrics Improved
-- **Word Count**: Increased from 70 to 300+ words
-- **Title Length**: Optimized to 60 characters
-- **Meta Description**: Added 160-character description
-- **Structured Data**: JSON-LD schema implemented
-- **Social Sharing**: Open Graph and Twitter Cards
-- **Performance**: Reduced JavaScript bundle size
-- **Security**: Added comprehensive security headers
-
 ## 🔧 Configuration
 
-Update `config.js` with your settings:
-- Contract address (after deployment)
-- Pinata API keys for IPFS
-- Network configuration
-- Google Analytics ID (replace G-XXXXXXXXXX)
+Update `config.js`:
+- Supabase URL and API key
+- File upload limits
+- Network settings
 
 ## 🌐 Deployment
 
-The application is optimized for Vercel deployment with:
-- HTTP/2 support
-- Security headers
-- Cache optimization
-- Performance monitoring
-- SEO-friendly URLs
+**Render.com (Free)**
+1. Connect GitHub repository
+2. Deploy with `render.yaml` configuration
+3. Set up Supabase database
+4. System ready for production
 
-## 📈 Analytics & Monitoring
+## 💰 Cost: $0
 
-- Google Analytics 4 integration ready
-- Performance monitoring configured
-- SEO tracking enabled
-- User behavior analytics
+- Supabase Database: FREE (500MB)
+- Render Hosting: FREE
+- All features: FREE
 
 ## 🔒 Security Features
 
-- Content Security Policy (CSP)
-- X-Frame-Options protection
-- XSS protection headers
-- HTTPS enforcement
-- Secure cookie settings
-- Input validation
+- File validation (50MB limit, type checking)
+- SHA-256 hash generation for integrity
+- Input sanitization (XSS prevention)
+- Role-based access control
+- Activity logging and audit trails
 
 ## 📄 License
 
-MIT License - Open source blockchain evidence management system.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our contributing guidelines and submit pull requests for any improvements.
-
-## 📞 Support
-
-For support and questions, please open an issue on GitHub or contact our development team.
+MIT License - Open source evidence management system.
 
 ---
 
-**Built with ❤️ for secure evidence management**
+**Built for secure, legal-compliant evidence management** ⚖️
