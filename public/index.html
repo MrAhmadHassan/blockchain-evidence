@@ -53,9 +53,9 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
-    <script src="config.js?v=2"></script>
-    <script src="storage.js?v=2"></script>
-    <script src="app.js?v=2"></script>
+    <script src="config.js?v=3"></script>
+    <script src="storage.js?v=3"></script>
+    <script src="app.js?v=3"></script>
 </head>
 <body>
     <!-- Floating Particles Background -->
@@ -252,6 +252,22 @@
             <div class="card-actions">
                 <button id="goToDashboard" class="btn btn-primary">
                     <span>🚀 Go to Dashboard</span>
+                </button>
+                <button onclick="logout()" class="btn btn-outline">
+                    <span>🚪 Switch Account</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Manual Login Section -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🔑 Already Have an Account?</h2>
+                <p>Connect with a different wallet or clear your session</p>
+            </div>
+            <div class="card-body text-center">
+                <button onclick="logout()" class="btn btn-outline">
+                    <span>🔄 Clear Session & Login Again</span>
                 </button>
             </div>
         </div>

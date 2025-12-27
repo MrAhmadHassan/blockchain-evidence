@@ -1,5 +1,5 @@
-// Simplified Evidence Management System
-let web3, userAccount;
+// Clean Evidence Management System - No Dependencies
+let userAccount;
 
 const roleNames = {
     1: 'Public Viewer', 2: 'Investigator', 3: 'Forensic Analyst',
@@ -8,31 +8,27 @@ const roleNames = {
 };
 
 // Initialize app
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
-}
+document.addEventListener('DOMContentLoaded', initializeApp);
 
 async function initializeApp() {
-    try {
-        const connectBtn = document.getElementById('connectWallet');
-        const regForm = document.getElementById('registrationForm');
-        const dashBtn = document.getElementById('goToDashboard');
-        
-        if (connectBtn) connectBtn.addEventListener('click', connectWallet);
-        if (regForm) regForm.addEventListener('submit', handleRegistration);
-        if (dashBtn) dashBtn.addEventListener('click', goToDashboard);
+    const connectBtn = document.getElementById('connectWallet');
+    const regForm = document.getElementById('registrationForm');
+    const dashBtn = document.getElementById('goToDashboard');
+    
+    if (connectBtn) connectBtn.addEventListener('click', connectWallet);
+    if (regForm) regForm.addEventListener('submit', handleRegistration);
+    if (dashBtn) dashBtn.addEventListener('click', goToDashboard);
 
-        // Auto-connect if MetaMask is available
-        if (window.ethereum) {
-            const accounts = await window.ethereum.request({ method: 'eth_accounts' }).catch(() => []);
+    // Auto-connect if MetaMask is available
+    if (window.ethereum) {
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
             if (accounts.length > 0) {
                 await connectWallet();
             }
+        } catch (error) {
+            console.log('MetaMask not connected');
         }
-    } catch (error) {
-        console.error('App initialization error:', error);
     }
 }
 
@@ -40,7 +36,7 @@ async function connectWallet() {
     try {
         showLoading(true);
         
-        // Demo mode for testing
+        // Demo mode for testing without MetaMask
         if (!window.ethereum) {
             userAccount = '0x1234567890123456789012345678901234567890';
             updateWalletUI();
@@ -57,7 +53,6 @@ async function connectWallet() {
         }
         
         userAccount = accounts[0];
-        web3 = new Web3(window.ethereum);
         updateWalletUI();
         await checkRegistrationStatus();
         showLoading(false);
@@ -88,14 +83,19 @@ async function checkRegistrationStatus() {
             return;
         }
         
-        // Check database first
-        let userInfo = await storage.getUser(userAccount);
+        // Check localStorage first (fastest)
+        let userInfo = null;
+        const savedUser = localStorage.getItem('evidUser_' + userAccount);
+        if (savedUser) {
+            userInfo = JSON.parse(savedUser);
+        }
         
-        // Fallback to localStorage
-        if (!userInfo) {
-            const savedUser = localStorage.getItem('evidUser_' + userAccount);
-            if (savedUser) {
-                userInfo = JSON.parse(savedUser);
+        // Try database if available
+        if (!userInfo && typeof storage !== 'undefined') {
+            try {
+                userInfo = await storage.getUser(userAccount);
+            } catch (error) {
+                console.log('Database not available, using localStorage only');
             }
         }
         
@@ -159,23 +159,23 @@ async function handleRegistration(event) {
             return;
         }
         
-        // Save to localStorage for immediate access
+        // Save to localStorage (always works)
         localStorage.setItem('evidUser_' + userAccount, JSON.stringify(formData));
-        
-        // Save to database
-        formData.walletAddress = userAccount;
-        const saved = await storage.saveUser(formData);
-        
-        // Set current user
         localStorage.setItem('currentUser', userAccount);
         
-        showLoading(false);
-        
-        if (saved) {
-            showAlert('Registration successful! Redirecting to dashboard...', 'success');
-        } else {
-            showAlert('Registration saved locally. Database sync will retry later.', 'info');
+        // Try to save to database if available
+        if (typeof storage !== 'undefined') {
+            try {
+                formData.walletAddress = userAccount;
+                await storage.saveUser(formData);
+                console.log('User saved to database');
+            } catch (error) {
+                console.log('Database save failed, using localStorage only');
+            }
         }
+        
+        showLoading(false);
+        showAlert('Registration successful! Redirecting to dashboard...', 'success');
         
         setTimeout(() => {
             window.location.href = 'dashboard.html';
@@ -210,13 +210,8 @@ function getFormData() {
 }
 
 async function goToDashboard() {
-    try {
-        localStorage.setItem('currentUser', userAccount);
-        window.location.href = 'dashboard.html';
-    } catch (error) {
-        console.error('Dashboard navigation error:', error);
-        showAlert('Error navigating to dashboard: ' + error.message, 'error');
-    }
+    localStorage.setItem('currentUser', userAccount);
+    window.location.href = 'dashboard.html';
 }
 
 function getRoleClass(role) {
@@ -225,6 +220,30 @@ function getRoleClass(role) {
         5: 'court', 6: 'manager', 7: 'auditor', 8: 'admin'
     };
     return roleClasses[role] || 'public';
+}
+
+function logout() {
+    // Clear all stored data
+    localStorage.removeItem('currentUser');
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('evidUser_')) {
+            localStorage.removeItem(key);
+        }
+    });
+    
+    // Reset UI
+    userAccount = null;
+    const connectBtn = document.getElementById('connectWallet');
+    if (connectBtn) {
+        connectBtn.textContent = '🚀 Connect MetaMask Wallet';
+        connectBtn.disabled = false;
+    }
+    
+    // Hide all sections except wallet
+    toggleSections('wallet');
+    document.getElementById('walletStatus')?.classList.add('hidden');
+    
+    showAlert('Logged out successfully. Connect wallet to login again.', 'success');
 }
 
 function showLoading(show) {
@@ -255,6 +274,42 @@ function showAlert(message, type) {
     document.body.appendChild(alert);
     setTimeout(() => alert.remove(), 5000);
 }
+
+// Role selection functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const roleCards = document.querySelectorAll('.role-card');
+    const userRoleInput = document.getElementById('userRole');
+    const professionalFields = document.getElementById('professionalFields');
+    
+    roleCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove selected class from all cards
+            roleCards.forEach(c => c.classList.remove('selected'));
+            
+            // Add selected class to clicked card
+            this.classList.add('selected');
+            
+            // Set the role value
+            const role = this.dataset.role;
+            if (userRoleInput) userRoleInput.value = role;
+            
+            // Show/hide professional fields
+            if (professionalFields) {
+                if (role === '1') { // Public Viewer
+                    professionalFields.classList.remove('show');
+                    document.getElementById('badgeNumber').required = false;
+                    document.getElementById('department').required = false;
+                    document.getElementById('jurisdiction').required = false;
+                } else {
+                    professionalFields.classList.add('show');
+                    document.getElementById('badgeNumber').required = true;
+                    document.getElementById('department').required = true;
+                    document.getElementById('jurisdiction').required = true;
+                }
+            }
+        });
+    });
+});
 
 // Ethereum event listeners
 if (window.ethereum) {
