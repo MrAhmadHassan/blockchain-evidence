@@ -181,16 +181,18 @@ async function handleRegistration(event) {
         // Save to localStorage (backward compatibility)
         localStorage.setItem('evidUser_' + userAccount, JSON.stringify(formData));
         
-        // Save to IndexedDB for persistent storage
+        // Save to Supabase for persistent storage
         formData.walletAddress = userAccount;
         await storage.saveUser(formData);
+        
+        // Set current user for dashboard access
+        localStorage.setItem('currentUser', userAccount);
         
         showLoading(false);
         showAlert('Registration successful! Redirecting to dashboard...', 'success');
         
         setTimeout(() => {
-            const dashboardUrl = roleDashboards[formData.role] || 'dashboard-public-viewer.html';
-            window.location.href = dashboardUrl;
+            window.location.href = 'dashboard.html';
         }, 2000);
         
     } catch (error) {
@@ -223,14 +225,8 @@ function getFormData() {
 
 async function goToDashboard() {
     try {
-        const savedUser = localStorage.getItem('evidUser_' + userAccount);
-        if (savedUser) {
-            const userInfo = JSON.parse(savedUser);
-            const dashboardUrl = roleDashboards[userInfo.role] || 'dashboard-public-viewer.html';
-            window.location.href = dashboardUrl;
-        } else {
-            showAlert('User data not found. Please register again.', 'error');
-        }
+        localStorage.setItem('currentUser', userAccount);
+        window.location.href = 'dashboard.html';
     } catch (error) {
         console.error('Dashboard navigation error:', error);
         showAlert('Error navigating to dashboard: ' + error.message, 'error');
