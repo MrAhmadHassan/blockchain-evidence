@@ -1,42 +1,49 @@
 services:
-  # Backend API Server
+  # Main production service
   - type: web
-    name: evid-dgc-api
+    name: evid-dgc-production
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        fromDatabase:
+          name: evid-dgc-db
+          property: connectionString
+      - key: SUPABASE_KEY
+        sync: false
+    domains:
+      - evid-dgc.onrender.com
+
+  # Preview environment for pull requests
+  - type: web
+    name: evid-dgc-preview
     env: node
     plan: free
     buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
+        value: staging
       - key: SUPABASE_URL
-        sync: false
+        fromDatabase:
+          name: evid-dgc-preview-db
+          property: connectionString
       - key: SUPABASE_KEY
         sync: false
-    healthCheckPath: /api/health
+    previewsEnabled: true
+    previewsExpireAfterDays: 7
 
-  # Frontend Static Site
-  - type: web
-    name: evid-dgc-frontend
-    env: static
-    buildCommand: echo "No build required"
-    staticPublishPath: ./public
-    headers:
-      - path: /*
-        headers:
-          - name: X-Frame-Options
-            value: DENY
-          - name: X-Content-Type-Options
-            value: nosniff
-          - name: Referrer-Policy
-            value: strict-origin-when-cross-origin
-      - path: /*.js
-        headers:
-          - name: Cache-Control
-            value: public, max-age=31536000, immutable
-      - path: /*.css
-        headers:
-          - name: Cache-Control
-            value: public, max-age=31536000, immutable
+databases:
+  - name: evid-dgc-db
+    databaseName: evid_dgc_production
+    user: evid_dgc_user
+    plan: free
+
+  - name: evid-dgc-preview-db
+    databaseName: evid_dgc_preview
+    user: evid_dgc_preview_user
+    plan: free
