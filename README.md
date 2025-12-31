@@ -13,6 +13,9 @@
 
 ## 🚀 Quick Start
 
+
+Before starting to work on my project, Go Through to the https://github.com/Gooichand/blockchain-evidence/blob/main/blockchain_evidence_contributor_guide.pdf 
+
 ### 1. Database Setup
 ```sql
 -- Run database-schema.sql in Supabase SQL Editor
