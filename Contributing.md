@@ -357,6 +357,28 @@ Contributors will be recognized in:
 - [ ] Changelog updated
 - [ ] Security review completed
 
+## 🤝 Contributors
+
+## 👥 Contributors
+
+<a href="https://github.com/Gooichand/blockchain-evidence/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Gooichand/blockchain-evidence" alt="Contributors" />
+</a>
+
+
+Made with [contrib.rocks](https://contrib.rocks)
+
+
+**Live Contributors:** https://github.com/Gooichand/blockchain-evidence/graphs/contributors
+
+---
+
+## 🌟 Want to Contribute?
+Check our [Good First Issues](https://github.com/Gooichand/blockchain-evidence/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or [Issues](https://github.com/Gooichand/blockchain-evidence/issues)!
+
+[CONTRIBUTING.md](CONTRIBUTING.md) 👈
+
+
 ## Questions?
 
 - Check existing [Issues](https://github.com/Gooichand/blockchain-evidence/issues)
