@@ -7,6 +7,36 @@
 [![Supabase](https://img.shields.io/badge/Database-Supabase-green)](https://supabase.com/)
 [![Deployment](https://img.shields.io/badge/Deploy-Render-blue)](https://render.com/)
 
+**📊 Project Insights**
+
+<table align="center">
+    <thead align="center">
+        <tr>
+            <td><b>🌟 Stars</b></td>
+            <td><b>🍴 Forks</b></td>
+            <td><b>🐛 Issues</b></td>
+            <td><b>🔔 Open PRs</b></td>
+            <td><b>🛠️ Languages</b></td>
+            <td><b>👥 Contributors</b></td>
+        </tr>
+     </thead>
+    <tbody>
+         <tr>
+            <td><img alt="Stars" src="https://img.shields.io/github/stars/Gooichand/blockchain-evidence?style=flat&logo=github"/></td>
+            <td><img alt="Forks" src="https://img.shields.io/github/forks/Gooichand/blockchain-evidence?style=flat&logo=github"/></td>
+            <td><img alt="Issues" src="https://img.shields.io/github/issues/Gooichand/blockchain-evidence?style=flat&logo=github"/></td>
+            <td><img alt="Open PRs" src="https://img.shields.io/github/issues-pr/Gooichand/blockchain-evidence?style=flat&logo=github"/></td>
+            <td><img alt="Languages Count" src="https://img.shields.io/github/languages/count/Gooichand/blockchain-evidence?style=flat&color=green&logo=github"/></td>
+            <td><img alt="Contributors Count" src="https://img.shields.io/github/contributors/Gooichand/blockchain-evidence?style=flat&color=blue&logo=github"/></td>
+        </tr>
+    </tbody>
+</table>
+
+<div align="center">
+  <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
+</div>
+
+
 ## ✨ Features
 
 - 🔒 **Admin-Only User Management** - Secure user creation by administrators
@@ -314,6 +344,25 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 </a>
 
 ---
+**🙌 Support & Star**
+
+***If you find this project helpful, please give it a star ⭐ to support more such educational initiatives!***
+
+<div align="center">
+  <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
+</div>
+
+<h1 align="center"><img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Glowing%20Star.png" alt="Glowing Star" width="25" height="25" /> Give us a Star and let's make magic! <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Glowing%20Star.png" alt="Glowing Star" width="25" height="25" /></h1>
+
+<p align="center">
+     <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Mirror%20Ball.png" alt="Mirror Ball" width="150" height="150" />
+</p>
+
+<div align="center">
+  <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
+</div>
+
+<h4 align="center">
 
 **Thank you for your support! ❤️**
 **🔐 Secure Evidence Management with Admin Controls** ⚖️
