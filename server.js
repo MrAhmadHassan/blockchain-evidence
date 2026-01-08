@@ -280,6 +280,25 @@ const timelineLimiter = rateLimit({
 // Case timeline route
 app.get('/case-timeline', timelineLimiter, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'case-timeline.html'));
+// Rate limiter for public policy pages
+const policyPageLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200 // limit each IP to 200 requests per window for policy pages
+});
+
+// Privacy policy route
+app.get('/privacy', policyPageLimiter, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
+
+// Data protection route
+app.get('/data-protection', policyPageLimiter, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'data-protection.html'));
+});
+
+// Public demo case route
+app.get('/demo-case', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'demo-case.html'));
 });
 
 // Health check

@@ -1789,4 +1789,98 @@ body {
     .timeline-content {
         margin-left: 0.5rem;
     }
+/* Privacy Policy and Data Protection Styles */
+.privacy-content, .data-protection-content {
+    max-width: none;
+}
+
+.privacy-content section, .data-protection-content section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.privacy-content section:last-child, .data-protection-content section:last-child {
+    border-bottom: none;
+}
+
+.privacy-content h2, .data-protection-content h2 {
+    color: var(--primary-red);
+    margin-bottom: 1rem;
+}
+
+.data-storage-grid, .comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.storage-item, .comparison-item {
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 2px solid var(--border-light);
+}
+
+.storage-item.on-chain {
+    background: linear-gradient(135deg, #fef3c7, #fbbf24);
+    border-color: #f59e0b;
+}
+
+.storage-item.off-chain {
+    background: linear-gradient(135deg, #dbeafe, #3b82f6);
+    border-color: #2563eb;
+    color: white;
+}
+
+.comparison-item.blockchain {
+    background: linear-gradient(135deg, #ecfdf5, #10b981);
+    border-color: #059669;
+}
+
+.comparison-item.traditional {
+    background: linear-gradient(135deg, #f3e8ff, #8b5cf6);
+    border-color: #7c3aed;
+    color: white;
+}
+
+.transparency-banner {
+    background: linear-gradient(135deg, #fef3c7, #f59e0b);
+    padding: 1.5rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.transparency-banner i {
+    width: 24px;
+    height: 24px;
+    color: #92400e;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
+
+.public-data-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.public-safe, .public-protected {
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 2px solid;
+}
+
+.public-safe {
+    background: linear-gradient(135deg, #ecfdf5, #10b981);
+    border-color: #059669;
+}
+
+.public-protected {
+    background: linear-gradient(135deg, #fef2f2, #ef4444);
+    border-color: #dc2626;
 }
