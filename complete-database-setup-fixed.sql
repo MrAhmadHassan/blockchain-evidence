@@ -1,4 +1,4 @@
--- EVID-DGC Complete Database Setup with SECURE RLS Policies
+-- EVID-DGC Complete Database Setup - FIXED VERSION
 -- Run this ONCE in Supabase SQL Editor to set up the entire system
 -- This includes all tables, SECURE policies, indexes, and the first admin user
 
@@ -6,6 +6,13 @@
 -- CLEAN SLATE - DROP EXISTING TABLES AND POLICIES
 -- ============================================================================
 
+DROP TABLE IF EXISTS case_status_history CASCADE;
+DROP TABLE IF EXISTS case_status_transitions CASCADE;
+DROP TABLE IF EXISTS case_statuses CASCADE;
+DROP TABLE IF EXISTS case_assignments CASCADE;
+DROP TABLE IF EXISTS user_profile_updates CASCADE;
+DROP TABLE IF EXISTS user_permissions CASCADE;
+DROP TABLE IF EXISTS user_sessions CASCADE;
 DROP TABLE IF EXISTS role_change_requests CASCADE;
 DROP TABLE IF EXISTS evidence_tags CASCADE;
 DROP TABLE IF EXISTS tags CASCADE;
@@ -43,6 +50,46 @@ CREATE TABLE users (
     )
 );
 
+-- Case status definitions table
+CREATE TABLE case_statuses (
+    id SERIAL PRIMARY KEY,
+    status_code VARCHAR(50) UNIQUE NOT NULL,
+    status_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    color_code VARCHAR(7) DEFAULT '#3B82F6',
+    icon VARCHAR(50) DEFAULT 'folder',
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Cases table with enhanced workflow
+CREATE TABLE cases (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    priority TEXT DEFAULT 'medium',
+    created_by TEXT NOT NULL,
+    status TEXT DEFAULT 'open',
+    created_date TIMESTAMPTZ DEFAULT NOW(),
+    status_id INTEGER REFERENCES case_statuses(id),
+    priority_level INTEGER DEFAULT 3 CHECK (priority_level BETWEEN 1 AND 5),
+    assigned_investigator TEXT,
+    assigned_prosecutor TEXT,
+    assigned_judge TEXT,
+    court_date TIMESTAMPTZ,
+    deadline_date TIMESTAMPTZ,
+    case_number VARCHAR(50) UNIQUE,
+    jurisdiction VARCHAR(100),
+    case_type VARCHAR(50) DEFAULT 'criminal',
+    estimated_completion TIMESTAMPTZ,
+    actual_completion TIMESTAMPTZ,
+    case_tags TEXT[],
+    metadata JSONB DEFAULT '{}',
+    last_status_change TIMESTAMPTZ DEFAULT NOW(),
+    status_changed_by TEXT
+);
+
 -- Evidence table
 CREATE TABLE evidence (
     id SERIAL PRIMARY KEY,
@@ -57,17 +104,6 @@ CREATE TABLE evidence (
     submitted_by TEXT NOT NULL,
     timestamp TIMESTAMPTZ DEFAULT NOW(),
     status TEXT DEFAULT 'pending'
-);
-
--- Cases table
-CREATE TABLE cases (
-    id SERIAL PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT,
-    priority TEXT DEFAULT 'medium',
-    created_by TEXT NOT NULL,
-    status TEXT DEFAULT 'open',
-    created_date TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Activity logs table
@@ -142,6 +178,87 @@ CREATE TABLE role_change_requests (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- User sessions table
+CREATE TABLE user_sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    session_token TEXT UNIQUE NOT NULL,
+    wallet_address TEXT,
+    email TEXT,
+    login_type TEXT CHECK (login_type IN ('wallet', 'email')),
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '24 hours'),
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- User permissions table
+CREATE TABLE user_permissions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    permission_name TEXT NOT NULL,
+    granted_by INTEGER REFERENCES users(id),
+    granted_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- User profile updates table
+CREATE TABLE user_profile_updates (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    field_name TEXT NOT NULL,
+    old_value TEXT,
+    new_value TEXT,
+    updated_by INTEGER REFERENCES users(id),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    reason TEXT
+);
+
+-- Case status transitions table
+CREATE TABLE case_status_transitions (
+    id SERIAL PRIMARY KEY,
+    from_status_id INTEGER REFERENCES case_statuses(id),
+    to_status_id INTEGER REFERENCES case_statuses(id),
+    required_role VARCHAR(50) NOT NULL,
+    requires_approval BOOLEAN DEFAULT FALSE,
+    approval_role VARCHAR(50),
+    transition_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(from_status_id, to_status_id, required_role)
+);
+
+-- Case status history table
+CREATE TABLE case_status_history (
+    id SERIAL PRIMARY KEY,
+    case_id INTEGER REFERENCES cases(id) ON DELETE CASCADE,
+    from_status_id INTEGER REFERENCES case_statuses(id),
+    to_status_id INTEGER REFERENCES case_statuses(id),
+    changed_by TEXT NOT NULL,
+    change_reason TEXT,
+    approved_by TEXT,
+    approved_at TIMESTAMPTZ,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Case assignments table
+CREATE TABLE case_assignments (
+    id SERIAL PRIMARY KEY,
+    case_id INTEGER REFERENCES cases(id) ON DELETE CASCADE,
+    assigned_to TEXT NOT NULL,
+    assigned_by TEXT NOT NULL,
+    role_type VARCHAR(50) NOT NULL,
+    assignment_type VARCHAR(50) DEFAULT 'primary' CHECK (assignment_type IN ('primary', 'secondary', 'observer')),
+    assigned_at TIMESTAMPTZ DEFAULT NOW(),
+    unassigned_at TIMESTAMPTZ,
+    is_active BOOLEAN DEFAULT TRUE,
+    notes TEXT
+);
+
 -- ============================================================================
 -- ROW LEVEL SECURITY
 -- ============================================================================
@@ -155,9 +272,16 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evidence_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE role_change_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profile_updates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE case_statuses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE case_status_transitions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE case_status_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE case_assignments ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
--- SECURE RLS POLICIES (FIXES ALL SECURITY ISSUES)
+-- SECURE RLS POLICIES
 -- ============================================================================
 
 -- Users table policies
@@ -165,7 +289,7 @@ CREATE POLICY "Users can view active users" ON users FOR SELECT USING (is_active
 CREATE POLICY "Users can register themselves" ON users FOR INSERT WITH CHECK (true);
 CREATE POLICY "Service role full access" ON users FOR ALL USING (current_user = 'service_role');
 
--- Evidence table policies  
+-- Evidence table policies
 CREATE POLICY "Users can view evidence" ON evidence FOR SELECT USING (true);
 CREATE POLICY "Authorized users can insert evidence" ON evidence FOR INSERT WITH CHECK (
     EXISTS (SELECT 1 FROM users u WHERE u.wallet_address = submitted_by AND u.is_active = true AND u.role IN ('investigator', 'forensic_analyst', 'evidence_manager', 'admin'))
@@ -199,6 +323,31 @@ CREATE POLICY "Service role full access" ON evidence_tags FOR ALL USING (current
 -- Role change requests policies
 CREATE POLICY "Service role full access" ON role_change_requests FOR ALL USING (current_user = 'service_role');
 
+-- User sessions policies
+CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (current_user = 'service_role');
+
+-- User permissions policies
+CREATE POLICY "Service role full access" ON user_permissions FOR ALL USING (current_user = 'service_role');
+
+-- User profile updates policies
+CREATE POLICY "Service role full access" ON user_profile_updates FOR ALL USING (current_user = 'service_role');
+
+-- Case statuses policies
+CREATE POLICY "Users can view case statuses" ON case_statuses FOR SELECT USING (true);
+CREATE POLICY "Service role full access" ON case_statuses FOR ALL USING (current_user = 'service_role');
+
+-- Case status transitions policies
+CREATE POLICY "Users can view case status transitions" ON case_status_transitions FOR SELECT USING (true);
+CREATE POLICY "Service role full access" ON case_status_transitions FOR ALL USING (current_user = 'service_role');
+
+-- Case status history policies
+CREATE POLICY "Users can view case status history" ON case_status_history FOR SELECT USING (true);
+CREATE POLICY "Service role full access" ON case_status_history FOR ALL USING (current_user = 'service_role');
+
+-- Case assignments policies
+CREATE POLICY "Users can view case assignments" ON case_assignments FOR SELECT USING (true);
+CREATE POLICY "Service role full access" ON case_assignments FOR ALL USING (current_user = 'service_role');
+
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
@@ -219,254 +368,31 @@ CREATE INDEX idx_evidence_tags_evidence_id ON evidence_tags(evidence_id);
 CREATE INDEX idx_evidence_tags_tag_id ON evidence_tags(tag_id);
 CREATE INDEX idx_role_change_requests_status ON role_change_requests(status);
 CREATE INDEX idx_role_change_requests_target ON role_change_requests(target_wallet);
--- RLS Policies for new user management tables
-ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_permissions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_profile_updates ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Service role full access" ON user_sessions FOR ALL USING (current_user = 'service_role');
-CREATE POLICY "Service role full access" ON user_permissions FOR ALL USING (current_user = 'service_role');
-CREATE POLICY "Service role full access" ON user_profile_updates FOR ALL USING (current_user = 'service_role');
-
--- Indexes for user management tables
+CREATE INDEX idx_role_change_requests_requesting ON role_change_requests(requesting_admin);
 CREATE INDEX idx_user_sessions_token ON user_sessions(session_token);
 CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX idx_user_sessions_active ON user_sessions(is_active, expires_at);
 CREATE INDEX idx_user_permissions_user_id ON user_permissions(user_id);
 CREATE INDEX idx_user_profile_updates_user_id ON user_profile_updates(user_id);
-
--- ============================================================================
--- USER MANAGEMENT TABLES AND FUNCTIONS
--- ============================================================================
-
--- User sessions table for tracking active sessions
-CREATE TABLE user_sessions (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    session_token TEXT UNIQUE NOT NULL,
-    wallet_address TEXT,
-    email TEXT,
-    login_type TEXT CHECK (login_type IN ('wallet', 'email')),
-    ip_address TEXT,
-    user_agent TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '24 hours'),
-    is_active BOOLEAN DEFAULT TRUE
-);
-
--- User permissions table for granular access control
-CREATE TABLE user_permissions (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    permission_name TEXT NOT NULL,
-    granted_by INTEGER REFERENCES users(id),
-    granted_at TIMESTAMPTZ DEFAULT NOW(),
-    expires_at TIMESTAMPTZ,
-    is_active BOOLEAN DEFAULT TRUE
-);
-
--- User profile updates table for tracking changes
-CREATE TABLE user_profile_updates (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    field_name TEXT NOT NULL,
-    old_value TEXT,
-    new_value TEXT,
-    updated_by INTEGER REFERENCES users(id),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    reason TEXT
-);
+CREATE INDEX idx_cases_status_id ON cases(status_id);
+CREATE INDEX idx_cases_case_number ON cases(case_number);
+CREATE INDEX idx_cases_priority_level ON cases(priority_level);
+CREATE INDEX idx_cases_assigned_investigator ON cases(assigned_investigator);
+CREATE INDEX idx_cases_assigned_prosecutor ON cases(assigned_prosecutor);
+CREATE INDEX idx_cases_assigned_judge ON cases(assigned_judge);
+CREATE INDEX idx_cases_court_date ON cases(court_date);
+CREATE INDEX idx_cases_deadline_date ON cases(deadline_date);
+CREATE INDEX idx_cases_case_type ON cases(case_type);
+CREATE INDEX idx_cases_jurisdiction ON cases(jurisdiction);
+CREATE INDEX idx_cases_last_status_change ON cases(last_status_change);
+CREATE INDEX idx_case_status_history_case_id ON case_status_history(case_id);
+CREATE INDEX idx_case_status_history_created_at ON case_status_history(created_at);
+CREATE INDEX idx_case_assignments_case_id ON case_assignments(case_id);
+CREATE INDEX idx_case_assignments_assigned_to ON case_assignments(assigned_to);
 
 -- ============================================================================
 -- FUNCTIONS AND TRIGGERS
 -- ============================================================================
-
--- Function to create user session
-CREATE OR REPLACE FUNCTION create_user_session(
-    p_user_id INTEGER,
-    p_wallet_address TEXT DEFAULT NULL,
-    p_email TEXT DEFAULT NULL,
-    p_login_type TEXT DEFAULT 'wallet',
-    p_ip_address TEXT DEFAULT NULL,
-    p_user_agent TEXT DEFAULT NULL
-)
-RETURNS TEXT AS $$
-DECLARE
-    session_token TEXT;
-BEGIN
-    -- Generate session token
-    session_token := encode(gen_random_bytes(32), 'hex');
-    
-    -- Insert session
-    INSERT INTO user_sessions (
-        user_id, session_token, wallet_address, email, login_type, ip_address, user_agent
-    ) VALUES (
-        p_user_id, session_token, p_wallet_address, p_email, p_login_type, p_ip_address, p_user_agent
-    );
-    
-    RETURN session_token;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function to validate user session
-CREATE OR REPLACE FUNCTION validate_user_session(p_session_token TEXT)
-RETURNS JSON AS $$
-DECLARE
-    session_data JSON;
-BEGIN
-    SELECT json_build_object(
-        'valid', true,
-        'user_id', us.user_id,
-        'wallet_address', us.wallet_address,
-        'email', us.email,
-        'login_type', us.login_type,
-        'user_data', json_build_object(
-            'id', u.id,
-            'full_name', u.full_name,
-            'role', u.role,
-            'department', u.department,
-            'is_active', u.is_active
-        )
-    ) INTO session_data
-    FROM user_sessions us
-    JOIN users u ON us.user_id = u.id
-    WHERE us.session_token = p_session_token
-    AND us.is_active = true
-    AND us.expires_at > NOW()
-    AND u.is_active = true;
-    
-    IF session_data IS NULL THEN
-        RETURN json_build_object('valid', false, 'error', 'Invalid or expired session');
-    END IF;
-    
-    RETURN session_data;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function to get user by identifier (email or wallet)
-CREATE OR REPLACE FUNCTION get_user_by_identifier(p_identifier TEXT)
-RETURNS JSON AS $$
-DECLARE
-    user_data JSON;
-BEGIN
-    SELECT json_build_object(
-        'id', id,
-        'wallet_address', wallet_address,
-        'email', email,
-        'full_name', full_name,
-        'role', role,
-        'department', department,
-        'jurisdiction', jurisdiction,
-        'badge_number', badge_number,
-        'auth_type', auth_type,
-        'is_active', is_active,
-        'created_at', created_at
-    ) INTO user_data
-    FROM users
-    WHERE (email = p_identifier OR wallet_address = p_identifier)
-    AND is_active = true;
-    
-    RETURN user_data;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function to update user profile
-CREATE OR REPLACE FUNCTION update_user_profile(
-    p_user_id INTEGER,
-    p_full_name TEXT DEFAULT NULL,
-    p_department TEXT DEFAULT NULL,
-    p_jurisdiction TEXT DEFAULT NULL,
-    p_badge_number TEXT DEFAULT NULL,
-    p_updated_by INTEGER DEFAULT NULL
-)
-RETURNS JSON AS $$
-DECLARE
-    old_data RECORD;
-    result JSON;
-BEGIN
-    -- Get current data
-    SELECT * INTO old_data FROM users WHERE id = p_user_id;
-    
-    IF old_data IS NULL THEN
-        RETURN json_build_object('success', false, 'error', 'User not found');
-    END IF;
-    
-    -- Update user
-    UPDATE users SET
-        full_name = COALESCE(p_full_name, full_name),
-        department = COALESCE(p_department, department),
-        jurisdiction = COALESCE(p_jurisdiction, jurisdiction),
-        badge_number = COALESCE(p_badge_number, badge_number),
-        last_updated = NOW()
-    WHERE id = p_user_id;
-    
-    -- Log changes
-    IF p_full_name IS NOT NULL AND p_full_name != old_data.full_name THEN
-        INSERT INTO user_profile_updates (user_id, field_name, old_value, new_value, updated_by)
-        VALUES (p_user_id, 'full_name', old_data.full_name, p_full_name, p_updated_by);
-    END IF;
-    
-    IF p_department IS NOT NULL AND p_department != old_data.department THEN
-        INSERT INTO user_profile_updates (user_id, field_name, old_value, new_value, updated_by)
-        VALUES (p_user_id, 'department', old_data.department, p_department, p_updated_by);
-    END IF;
-    
-    RETURN json_build_object('success', true, 'message', 'Profile updated successfully');
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function to get all users with pagination
-CREATE OR REPLACE FUNCTION get_all_users(
-    p_limit INTEGER DEFAULT 50,
-    p_offset INTEGER DEFAULT 0,
-    p_role_filter TEXT DEFAULT NULL,
-    p_active_only BOOLEAN DEFAULT true
-)
-RETURNS JSON AS $$
-DECLARE
-    users_data JSON;
-    total_count INTEGER;
-BEGIN
-    -- Get total count
-    SELECT COUNT(*) INTO total_count
-    FROM users
-    WHERE (p_active_only = false OR is_active = true)
-    AND (p_role_filter IS NULL OR role = p_role_filter);
-    
-    -- Get users
-    SELECT json_agg(
-        json_build_object(
-            'id', id,
-            'wallet_address', wallet_address,
-            'email', email,
-            'full_name', full_name,
-            'role', role,
-            'department', department,
-            'jurisdiction', jurisdiction,
-            'badge_number', badge_number,
-            'auth_type', auth_type,
-            'is_active', is_active,
-            'created_at', created_at,
-            'last_updated', last_updated
-        )
-    ) INTO users_data
-    FROM (
-        SELECT *
-        FROM users
-        WHERE (p_active_only = false OR is_active = true)
-        AND (p_role_filter IS NULL OR role = p_role_filter)
-        ORDER BY created_at DESC
-        LIMIT p_limit OFFSET p_offset
-    ) u;
-    
-    RETURN json_build_object(
-        'users', COALESCE(users_data, '[]'::json),
-        'total_count', total_count,
-        'limit', p_limit,
-        'offset', p_offset
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to hash passwords
 CREATE OR REPLACE FUNCTION hash_password(password TEXT)
@@ -522,6 +448,51 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to log case status changes
+CREATE OR REPLACE FUNCTION log_case_status_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Only log if status actually changed
+    IF OLD.status_id IS DISTINCT FROM NEW.status_id THEN
+        INSERT INTO case_status_history (
+            case_id,
+            from_status_id,
+            to_status_id,
+            changed_by,
+            change_reason,
+            metadata
+        ) VALUES (
+            NEW.id,
+            OLD.status_id,
+            NEW.status_id,
+            NEW.status_changed_by,
+            'Status updated via system',
+            jsonb_build_object(
+                'previous_status', OLD.status,
+                'new_status', NEW.status,
+                'change_timestamp', NOW()
+            )
+        );
+
+        -- Update last status change timestamp
+        NEW.last_status_change = NOW();
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to auto-assign case numbers
+CREATE OR REPLACE FUNCTION generate_case_number()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.case_number IS NULL THEN
+        NEW.case_number := 'CASE-' || TO_CHAR(NOW(), 'YYYY') || '-' || LPAD(NEW.id::TEXT, 6, '0');
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Email user creation function
 CREATE OR REPLACE FUNCTION create_email_user(
     p_email TEXT,
@@ -568,6 +539,133 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Get user by identifier function
+CREATE OR REPLACE FUNCTION get_user_by_identifier(p_identifier TEXT)
+RETURNS JSON AS $$
+DECLARE
+    user_data JSON;
+BEGIN
+    SELECT json_build_object(
+        'id', id,
+        'wallet_address', wallet_address,
+        'email', email,
+        'full_name', full_name,
+        'role', role,
+        'department', department,
+        'jurisdiction', jurisdiction,
+        'badge_number', badge_number,
+        'auth_type', auth_type,
+        'is_active', is_active,
+        'created_at', created_at
+    ) INTO user_data
+    FROM users
+    WHERE (email = p_identifier OR wallet_address = p_identifier)
+    AND is_active = true;
+
+    RETURN user_data;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Get all users function
+CREATE OR REPLACE FUNCTION get_all_users(
+    p_limit INTEGER DEFAULT 50,
+    p_offset INTEGER DEFAULT 0,
+    p_role_filter TEXT DEFAULT NULL,
+    p_active_only BOOLEAN DEFAULT true
+)
+RETURNS JSON AS $$
+DECLARE
+    users_data JSON;
+    total_count INTEGER;
+BEGIN
+    -- Get total count
+    SELECT COUNT(*) INTO total_count
+    FROM users
+    WHERE (p_active_only = false OR is_active = true)
+    AND (p_role_filter IS NULL OR role = p_role_filter);
+
+    -- Get users
+    SELECT json_agg(
+        json_build_object(
+            'id', id,
+            'wallet_address', wallet_address,
+            'email', email,
+            'full_name', full_name,
+            'role', role,
+            'department', department,
+            'jurisdiction', jurisdiction,
+            'badge_number', badge_number,
+            'auth_type', auth_type,
+            'is_active', is_active,
+            'created_at', created_at,
+            'last_updated', last_updated
+        )
+    ) INTO users_data
+    FROM (
+        SELECT *
+        FROM users
+        WHERE (p_active_only = false OR is_active = true)
+        AND (p_role_filter IS NULL OR role = p_role_filter)
+        ORDER BY created_at DESC
+        LIMIT p_limit OFFSET p_offset
+    ) u;
+
+    RETURN json_build_object(
+        'users', COALESCE(users_data, '[]'::json),
+        'total_count', total_count,
+        'limit', p_limit,
+        'offset', p_offset
+    );
+
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Update user profile function
+CREATE OR REPLACE FUNCTION update_user_profile(
+    p_user_id INTEGER,
+    p_full_name TEXT DEFAULT NULL,
+    p_department TEXT DEFAULT NULL,
+    p_jurisdiction TEXT DEFAULT NULL,
+    p_badge_number TEXT DEFAULT NULL,
+    p_updated_by INTEGER DEFAULT NULL
+)
+RETURNS JSON AS $$
+DECLARE
+    old_data RECORD;
+    result JSON;
+BEGIN
+    -- Get current data
+    SELECT * INTO old_data FROM users WHERE id = p_user_id;
+
+    IF old_data IS NULL THEN
+        RETURN json_build_object('success', false, 'error', 'User not found');
+    END IF;
+
+    -- Update user
+    UPDATE users SET
+        full_name = COALESCE(p_full_name, full_name),
+        department = COALESCE(p_department, department),
+        jurisdiction = COALESCE(p_jurisdiction, jurisdiction),
+        badge_number = COALESCE(p_badge_number, badge_number),
+        last_updated = NOW()
+    WHERE id = p_user_id;
+
+    -- Log changes
+    IF p_full_name IS NOT NULL AND p_full_name != old_data.full_name THEN
+        INSERT INTO user_profile_updates (user_id, field_name, old_value, new_value, updated_by)
+        VALUES (p_user_id, 'full_name', old_data.full_name, p_full_name, p_updated_by);
+    END IF;
+
+    IF p_department IS NOT NULL AND p_department != old_data.department THEN
+        INSERT INTO user_profile_updates (user_id, field_name, old_value, new_value, updated_by)
+        VALUES (p_user_id, 'department', old_data.department, p_department, p_updated_by);
+    END IF;
+
+    RETURN json_build_object('success', true, 'message', 'Profile updated successfully');
+
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Create triggers
 CREATE TRIGGER trigger_update_tag_usage
     AFTER INSERT OR DELETE ON evidence_tags
@@ -578,9 +676,31 @@ CREATE TRIGGER role_change_requests_updated_at_trigger
     FOR EACH ROW
     EXECUTE FUNCTION update_role_change_requests_updated_at();
 
+CREATE TRIGGER case_status_change_log_trigger
+    BEFORE UPDATE ON cases
+    FOR EACH ROW
+    EXECUTE FUNCTION log_case_status_change();
+
+CREATE TRIGGER case_number_generation_trigger
+    BEFORE INSERT ON cases
+    FOR EACH ROW
+    EXECUTE FUNCTION generate_case_number();
+
 -- ============================================================================
 -- DEFAULT DATA
 -- ============================================================================
+
+-- Default case statuses
+INSERT INTO case_statuses (status_code, status_name, description, color_code, icon, sort_order) VALUES
+('open', 'Open', 'Case created, initial evidence being collected', '#3B82F6', 'folder-open', 1),
+('under_investigation', 'Under Investigation', 'Active investigation, evidence being processed', '#F59E0B', 'search', 2),
+('evidence_review', 'Evidence Review', 'Evidence collected, under forensic analysis', '#8B5CF6', 'microscope', 3),
+('legal_review', 'Legal Review', 'Case under legal professional review', '#10B981', 'scale', 4),
+('pending_court', 'Pending Court', 'Ready for court review, awaiting judicial decision', '#EF4444', 'gavel', 5),
+('in_trial', 'In Trial', 'Case currently in court proceedings', '#DC2626', 'courthouse', 6),
+('closed', 'Closed', 'Case concluded and archived', '#6B7280', 'archive', 7),
+('suspended', 'Suspended', 'Case temporarily suspended', '#F97316', 'pause-circle', 8),
+('reopened', 'Reopened', 'Previously closed case reopened for new evidence', '#06B6D4', 'refresh-cw', 9);
 
 -- First admin user (supports both wallet and email)
 INSERT INTO users (
@@ -626,7 +746,7 @@ INSERT INTO users (
 INSERT INTO users (
     email, password_hash, full_name, role, department, jurisdiction,
     auth_type, account_type, created_by, is_active, email_verified
-) VALUES 
+) VALUES
 ('investigator@evid-dgc.com', 'hashed_password_123', 'John Investigator', 'investigator', 'Criminal Investigation', 'City Police', 'email', 'real', 'system_setup', true, true),
 ('analyst@evid-dgc.com', 'hashed_password_456', 'Sarah Analyst', 'forensic_analyst', 'Digital Forensics', 'State Bureau', 'email', 'real', 'system_setup', true, true),
 ('legal@evid-dgc.com', 'hashed_password_789', 'Michael Legal', 'legal_professional', 'District Attorney', 'County Court', 'email', 'real', 'system_setup', true, true)
@@ -644,21 +764,27 @@ INSERT INTO tags (name, color, category, created_by) VALUES
 ('public', '#059669', 'sensitivity', 'system')
 ON CONFLICT (name) DO NOTHING;
 
+-- Update existing cases with default status
+UPDATE cases SET status_id = 1 WHERE status_id IS NULL;
+
+-- Generate case numbers for existing cases
+UPDATE cases SET case_number = 'CASE-' || TO_CHAR(NOW(), 'YYYY') || '-' || LPAD(id::TEXT, 6, '0') WHERE case_number IS NULL;
+
 -- ============================================================================
 -- VERIFICATION QUERIES
 -- ============================================================================
 
 -- Verify setup
 SELECT 'Database setup complete' as status,
-       COUNT(*) as total_users,
-       COUNT(CASE WHEN auth_type = 'email' THEN 1 END) as email_users,
-       COUNT(CASE WHEN auth_type = 'wallet' THEN 1 END) as wallet_users,
-       COUNT(CASE WHEN auth_type = 'both' THEN 1 END) as both_auth_users
+    COUNT(*) as total_users,
+    COUNT(CASE WHEN auth_type = 'email' THEN 1 END) as email_users,
+    COUNT(CASE WHEN auth_type = 'wallet' THEN 1 END) as wallet_users,
+    COUNT(CASE WHEN auth_type = 'both' THEN 1 END) as both_auth_users
 FROM users;
 
 -- Show RLS status
 SELECT schemaname, tablename, rowsecurity as rls_enabled
-FROM pg_tables 
-WHERE schemaname = 'public' 
+FROM pg_tables
+WHERE schemaname = 'public'
 AND tablename IN ('users', 'evidence', 'cases', 'activity_logs', 'admin_actions', 'notifications', 'tags', 'evidence_tags', 'role_change_requests')
 ORDER BY tablename;
