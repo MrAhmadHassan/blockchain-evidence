@@ -266,7 +266,7 @@ body {
     --shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
-.dark-theme body {
+body.dark-theme {
     background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 50%, #3d3d3d 100%) !important;
     color: #E0E0E0 !important;
 }
@@ -319,22 +319,36 @@ body {
 
 
 
-.theme-toggle-btn {
+.theme-toggle-control {
     background: transparent;
     border: 2px solid var(--primary-red);
     color: var(--primary-red);
-    padding: 8px 16px;
-    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
     transition: all 0.3s ease;
 }
 
-.theme-toggle-btn i {
-    width: 10px;
-    height: 10px;
+.theme-toggle-control:hover {
+    background: var(--primary-red);
+    color: var(--white);
 }
 
+.theme-toggle-control i {
+    width: 20px;
+    height: 20px;
+}
+
+.dark-theme .theme-toggle-control {
+    border-color: #FF6B6B;
+    color: #FF6B6B;
+}
+
+.dark-theme .theme-toggle-control:hover {
+    background: #FF6B6B;
+    color: #121212;
+}
 
 .dark-theme .header-nav {
     background: rgba(20, 20, 20, 0.98) !important;
@@ -2292,12 +2306,12 @@ body {
     .timeline-content {
         margin-left: 0.5rem;
     }
+}
 
-    /* Privacy Policy and Data Protection Styles */
-    .privacy-content,
-    .data-protection-content {
-        max-width: none;
-    }
+/* Privacy Policy and Data Protection Styles */
+.privacy-content,
+.data-protection-content {
+    max-width: none;
 
     .privacy-content section,
     .data-protection-content section {
@@ -2416,21 +2430,21 @@ body {
         max-width: 20px !important;
         object-fit: contain;
     }
+}
 
-    @media (max-width: 768px) {
-        .brand-logo, .navbar-logo {
-            height: 20px !important;
-            max-width: 20px !important;
-        }
-
-        .hero-logo {
-            height: 50px !important;
-            max-width: 50px !important;
-        }
-
-        .footer-logo {
-            height: 18px !important;
-            max-width: 18px !important;
+@media (max-width: 768px) {
+    .brand-logo, .navbar-logo {
+        height: 20px !important;
+        max-width: 20px !important;
     }
-  }
+
+    .hero-logo {
+        height: 50px !important;
+        max-width: 50px !important;
+    }
+
+    .footer-logo {
+        height: 18px !important;
+        max-width: 18px !important;
+    }
 }
