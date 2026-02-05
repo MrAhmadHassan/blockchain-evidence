@@ -3,13 +3,13 @@ let userAccount;
 // Initialize application
 function initializeApp() {
     console.log('Initializing EVID-DGC application...');
-    
+
     try {
         // Initialize Lucide icons
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
-        
+
         // Initialize components
         initializeNavigation();
         initializeScrollUp();
@@ -18,19 +18,19 @@ function initializeApp() {
         initializeParticles();
         initializeFAQ();
         initializeEmailLogin();
-        
+
         // Add click handler for wallet connection
         const connectBtn = document.getElementById('connectWallet');
         if (connectBtn) {
             connectBtn.onclick = connectWallet;
         }
-        
+
         // Initialize forms
         const registrationForm = document.getElementById('registrationForm');
         if (registrationForm) {
             registrationForm.addEventListener('submit', handleRegistration);
         }
-        
+
         console.log('Application initialized successfully');
     } catch (error) {
         console.error('Initialization error:', error);
@@ -90,18 +90,18 @@ function closeEmailRegistration() {
 async function handleEmailLogin(event) {
     event.preventDefault();
     console.log('Handling email login...');
-    
+
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
-    
+
     if (!email || !password) {
         showAlert('Please enter both email and password', 'error');
         return;
     }
-    
+
     try {
         showLoading(true, 'Logging in...');
-        
+
         const response = await fetch(`${config.API_BASE_URL}/auth/email-login`, {
             method: 'POST',
             headers: {
@@ -109,19 +109,19 @@ async function handleEmailLogin(event) {
             },
             body: JSON.stringify({ email, password })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             // Store user data
             localStorage.setItem('currentUser', JSON.stringify({
                 type: 'email',
                 user: data.user
             }));
-            
+
             showAlert('Login successful!', 'success');
             closeEmailLogin();
-            
+
             // Check if admin
             if (data.user.role === 'admin') {
                 displayAdminOptions(data.user);
@@ -171,7 +171,7 @@ async function handleEmailRegistration(event) {
 
     try {
         showLoading(true, 'Creating account...');
-        
+
         const response = await fetch(`${config.API_BASE_URL}/auth/email-register`, {
             method: 'POST',
             headers: {
@@ -186,19 +186,19 @@ async function handleEmailRegistration(event) {
                 jurisdiction: 'General'
             })
         });
-        
+
         const data = await response.json();
         console.log('Registration response:', data);
-        
+
         if (data.success) {
             localStorage.setItem('currentUser', JSON.stringify({
                 type: 'email',
                 user: data.user
             }));
-            
+
             showAlert('Registration successful! Redirecting to dashboard...', 'success');
             closeEmailRegistration();
-            
+
             setTimeout(() => {
                 window.location.href = getDashboardUrl(data.user.role);
             }, 1500);
@@ -219,7 +219,7 @@ function initializeEmailLogin() {
     if (emailLoginForm) {
         emailLoginForm.addEventListener('submit', handleEmailLogin);
     }
-    
+
     const emailRegForm = document.getElementById('emailRegistrationForm');
     if (emailRegForm) {
         emailRegForm.addEventListener('submit', handleEmailRegistration);
@@ -263,7 +263,7 @@ async function connectWallet() {
 
         userAccount = accounts[0];
         console.log('Wallet connected:', userAccount);
-        
+
         // Check if we're on the correct network
         const chainId = await window.ethereum.request({ method: 'eth_chainId' });
         if (chainId !== config.TARGET_CHAIN_ID) {
@@ -286,9 +286,9 @@ async function connectWallet() {
                 return;
             }
         }
-        
+
         localStorage.setItem('wasConnected', 'true');
-        
+
         updateWalletUI();
         await checkRegistrationStatus();
         showLoading(false);
@@ -329,29 +329,29 @@ function updateWalletUI() {
 // Check registration status
 async function checkRegistrationStatus() {
     console.log('Checking registration status for:', userAccount);
-    
+
     if (!userAccount) {
         showAlert('Please connect your wallet first', 'error');
         return;
     }
-    
+
     try {
         showLoading(true, 'Checking registration...');
-        
+
         const response = await fetch(`${config.API_BASE_URL}/user/${userAccount}`);
         const data = await response.json();
-        
+
         if (data.user) {
             console.log('Found existing user:', data.user);
-            
+
             // Store user data
             localStorage.setItem('currentUser', JSON.stringify({
                 type: 'wallet',
                 user: data.user
             }));
-            
+
             displayUserInfo(data.user);
-            
+
             if (data.user.role === 'admin') {
                 displayAdminOptions(data.user);
                 toggleSections('adminOptions');
@@ -393,7 +393,7 @@ function displayUserInfo(userData) {
     }
 
     if (userRoleName) {
-        const roleName = userData.role.split('_').map(word => 
+        const roleName = userData.role.split('_').map(word =>
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
         userRoleName.textContent = roleName;
@@ -435,7 +435,7 @@ async function handleRegistration(event) {
         }
 
         showLoading(true, 'Registering user...');
-        
+
         const response = await fetch(`${config.API_BASE_URL}/auth/wallet-register`, {
             method: 'POST',
             headers: {
@@ -450,18 +450,18 @@ async function handleRegistration(event) {
                 jurisdiction: jurisdiction || 'General'
             })
         });
-        
+
         const data = await response.json();
         console.log('Wallet registration response:', data);
-        
+
         if (data.success) {
             localStorage.setItem('currentUser', JSON.stringify({
                 type: 'wallet',
                 user: data.user
             }));
-            
+
             showAlert('Registration successful! Redirecting to dashboard...', 'success');
-            
+
             setTimeout(() => {
                 window.location.href = getDashboardUrl(data.user.role);
             }, 2000);
@@ -532,7 +532,7 @@ function initializeSections() {
             element.classList.add('hidden');
         }
     });
-    
+
     const walletSection = document.getElementById('walletSection');
     if (walletSection) {
         walletSection.classList.remove('hidden');
@@ -612,7 +612,7 @@ function initializeRoleSelection() {
 function initializeParticles() {
     const particlesContainer = document.getElementById('particles');
     if (!particlesContainer) return;
-    
+
     for (let i = 0; i < 50; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
@@ -748,14 +748,20 @@ window.EVID_DGC = {
     showAlert,
     scrollToSection,
     handleEmailRegistration,
-    handleEmailLogin
+    handleEmailLogin,
+    toggleDarkTheme
 };
 
 // Global error handlers
-window.addEventListener('error', function(event) {
+window.addEventListener('error', function (event) {
     console.error('Global error:', event.error);
 });
 
-window.addEventListener('unhandledrejection', function(event) {
+window.addEventListener('unhandledrejection', function (event) {
     console.error('Unhandled promise rejection:', event.reason);
 });
+
+// Helper function for toggling dark theme
+function toggleDarkTheme() {
+    document.getElementsByTagName("body")[0].classList.toggle('dark-theme');
+}
